@@ -1,0 +1,28 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<beans xmlns="http://www.springframework.org/schema/beans"
+	xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:context="http://www.springframework.org/schema/context"
+	xsi:schemaLocation="http://www.springframework.org/schema/beans
+	http://www.springframework.org/schema/beans/spring-beans-2.5.xsd
+	http://www.springframework.org/schema/context
+	http://www.springframework.org/schema/context/spring-context-2.5.xsd">
+	<bean id="mailProperties" class="cn.com.gei.kmp4.core.utils.mail.MailProperties">
+		<constructor-arg index="0">
+			<value>true</value>
+		</constructor-arg>
+	</bean>
+	
+	<bean id="mailSender" class="org.springframework.mail.javamail.JavaMailSenderImpl">
+		<property name="host">
+			<value>smtp.qiye.163.com</value>
+		</property>
+		<property name="password">
+			<value>password</value>
+		</property>
+		<property name="username">
+			<value>username</value>
+		</property>
+		<property name="javaMailProperties">
+			<ref local="mailProperties" />
+		</property>
+	</bean>
+</beans>
