@@ -1,0 +1,38 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project name="MyProject" basedir="." default="jar">
+	<!-- set global properties for this classes -->
+	<property name="src" value="src" />
+	<property name="classes" value="classes" />
+	<property name="dist" value="dist" />
+	<property name="app.name" value="makejournal-src" />
+	<property name="app.version" value="1.0.0" />
+	<property name="classes.encode" value="UTF-8" />
+	<property name="lib" value="lib" />
+	<path id="classpath">
+		<fileset dir="${lib}">
+			<include name="**/*.jar" />
+		</fileset>
+	</path>
+	<target name="init">
+		<!-- Create the time stamp -->
+		<tstamp />
+	</target>
+	<target name="classes" depends="init">
+		<delete dir="${classes}" />
+		<mkdir dir="${classes}" />
+		<javac deprecation="on" debug="on" encoding="${classes.encode}" srcdir="${src}" destdir="${classes}" classpathref="classpath" />
+		<copy todir="${classes}">
+			<fileset dir="${src}" includes="**/*.properties,**/*.xml,**/*.bsh,**/*.logic **/*.hbm,**/*.cnd" />
+		</copy>
+		<copy todir="${classes}">
+			<fileset dir="./" includes="**/*.txt" />
+		</copy>
+	</target>
+	<target name="jar" depends="classes">
+		<delete dir="${dist}" />
+		<!-- Create the distribution directory -->
+		<mkdir dir="${dist}" />
+		<!-- Put everything in ${classes} into the MyProject-${DSTAMP}.jar file -->
+		<jar jarfile="${dist}/${app.name}-${app.version}.jar" basedir="${classes}" />
+	</target>
+</project>
