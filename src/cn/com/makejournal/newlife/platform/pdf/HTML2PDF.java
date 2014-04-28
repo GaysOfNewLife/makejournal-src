@@ -4,11 +4,10 @@ import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileOutputStream;
 import java.io.InputStream;
+import java.net.HttpURLConnection;
+import java.net.URL;
 
-import org.apache.http.HttpEntity;
-import org.apache.http.HttpResponse;
-import org.apache.http.client.methods.HttpGet;
-import org.apache.http.impl.client.DefaultHttpClient;
+import cn.newlife.pdf.tool.SourceType;
 
 import com.itextpdf.text.Document;
 import com.itextpdf.text.pdf.PdfWriter;
@@ -91,9 +90,7 @@ public class HTML2PDF {
 				&& new File(css_file).exists()) {
 			parseHtmlWithCSS(helper, html, input, css_file);
 		} else {
-			XMLWorker worker = new XMLWorker(html, true);
-			XMLParser p = new XMLParser(worker);
-			p.parse(input);
+			helper.parseXHtml(pdfWriter, document,input);
 		}
 		document.close();
 	}
@@ -127,11 +124,9 @@ public class HTML2PDF {
 	}
 
 	private InputStream getResponse(String url) throws Exception {
-		DefaultHttpClient client = new DefaultHttpClient();
-		HttpGet get = new HttpGet(url);
-		HttpResponse response = client.execute(get);
-		HttpEntity entity = response.getEntity();
-		return entity.getContent();
+		URL uri = new URL(url);
+		HttpURLConnection conn = (HttpURLConnection) uri.openConnection();
+		return conn.getInputStream();
 	}
 
 	private InputStream getInputStream(String target, SourceType type)
@@ -155,7 +150,8 @@ public class HTML2PDF {
 	public static void main(String[] args) {
 		try {
 			HTML2PDF html2pdf = new HTML2PDF("D:\\test2.pdf", null);
-			html2pdf.parseHtml2Pdf("D:\\html1.html", SourceType.HTML);
+			//html2pdf.parseHtml2Pdf("D:\\html1.html", SourceType.HTML);
+			html2pdf.parseHtml2Pdf("http://localhost:8080/html1.html", SourceType.URI);
 		} catch (Exception e) {
 			e.printStackTrace();
 		}
