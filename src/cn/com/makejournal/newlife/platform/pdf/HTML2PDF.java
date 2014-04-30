@@ -1,16 +1,20 @@
-package cn.com.makejournal.newlife.platform.pdf;
+package org.newlife.pdf;
 
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileOutputStream;
+import java.io.IOException;
 import java.io.InputStream;
 import java.net.HttpURLConnection;
 import java.net.URL;
+import java.util.ArrayList;
+import java.util.List;
 
-import cn.newlife.pdf.tool.SourceType;
+import org.jdesktop.swingx.util.OS;
 
 import com.itextpdf.text.Document;
 import com.itextpdf.text.pdf.PdfWriter;
+import com.itextpdf.tool.xml.Pipeline;
 import com.itextpdf.tool.xml.XMLWorker;
 import com.itextpdf.tool.xml.XMLWorkerFontProvider;
 import com.itextpdf.tool.xml.XMLWorkerHelper;
@@ -32,33 +36,30 @@ import com.itextpdf.tool.xml.pipeline.html.HtmlPipelineContext;
  * 
  * @author ray
  * 
- *         将html文件或者是带css的html的文件转换成pdf
+ *         将html文件或者是带css的html的文件转换成pdf 生成的pdf将会自动分页
  * 
  * */
 public class HTML2PDF {
 
-	// private String html_source;
 	private String save_target;
-	private String images_root;
 
-	public HTML2PDF(String save_target, String images_root) {
+	public HTML2PDF(String save_target) {
 		this.save_target = save_target;
-		this.images_root = images_root;
 	}
 
 	public void parseHtml2Pdf(String target, SourceType type) throws Exception {
 		InputStream input = getInputStream(target, type);
-		parseHtml2Pdf(input, null);
+		parseHtml2Pdf(input, null, null);
 	}
 
-	public void parseHtml2Pdf(String target, String css_file, SourceType type)
-			throws Exception {
+	public void parseHtml2Pdf(String target, String css_file,
+			String images_root, SourceType type) throws Exception {
 		InputStream input = getInputStream(target, type);
-		parseHtml2Pdf(input, css_file);
+		parseHtml2Pdf(input, css_file, images_root);
 	}
 
-	private void parseHtml2Pdf(InputStream input, String css_file)
-			throws Exception {
+	private void parseHtml2Pdf(InputStream input, String css_file,
+			String images_root) throws Exception {
 		if (input == null)
 			throw new Exception("源文件不存在");
 		Document document = new Document();
@@ -73,25 +74,32 @@ public class HTML2PDF {
 		HtmlPipelineContext htmlContext = new HtmlPipelineContext(cssAppliers);
 		// 默认是html Tags，如果要解释其他的tags 需要实现自己的Pipeline
 		htmlContext.setTagFactory(Tags.getHtmlTagProcessorFactory());
-
 		if (images_root != null && !"".equals(images_root)) {
 			System.out.println(images_root);
+			final String imageRoot = images_root;
 			htmlContext.setImageProvider(new AbstractImageProvider() {
 				@Override
 				public String getImageRootPath() {
-					return images_root;
+					return imageRoot;
 				}
 			});
 		}
-
-		PdfWriterPipeline pdf = new PdfWriterPipeline(document, pdfWriter);
-		HtmlPipeline html = new HtmlPipeline(htmlContext, pdf);
+		CSSResolver cssResolver = null;
 		if (css_file != null && !"".equals(css_file)
 				&& new File(css_file).exists()) {
-			parseHtmlWithCSS(helper, html, input, css_file);
+			cssResolver = new StyleAttrCSSResolver();
+			CssFile cssFile = helper.getCSS(new FileInputStream(css_file));
+			cssResolver.addCss(cssFile);
 		} else {
-			helper.parseXHtml(pdfWriter, document,input);
+			cssResolver = helper.getDefaultCssResolver(true);
 		}
+		Pipeline pipeline = new CssResolverPipeline(cssResolver,
+				new HtmlPipeline(htmlContext, new PdfWriterPipeline(document,
+						pdfWriter)));
+		XMLWorker worker = new XMLWorker(pipeline, true);
+		XMLParser p = new XMLParser(worker);
+		p.parse(input);
+		p.flush();
 		document.close();
 	}
 
@@ -110,17 +118,6 @@ public class HTML2PDF {
 			// fontProvider.addFontSubstitute("Gill Sans", "Gill Sans 超粗体");
 		}
 		return fontProvider;
-	}
-
-	private void parseHtmlWithCSS(XMLWorkerHelper helper, HtmlPipeline html,
-			InputStream input, String cssfile_source) throws Exception {
-		CSSResolver cssResolver = new StyleAttrCSSResolver();
-		CssFile cssFile = helper.getCSS(new FileInputStream(cssfile_source));
-		cssResolver.addCss(cssFile);
-		CssResolverPipeline css = new CssResolverPipeline(cssResolver, html);
-		XMLWorker worker = new XMLWorker(css, true);
-		XMLParser p = new XMLParser(worker);
-		p.parse(input);
 	}
 
 	private InputStream getResponse(String url) throws Exception {
@@ -147,11 +144,40 @@ public class HTML2PDF {
 		this.save_target = save_target;
 	}
 
+	private static String wkhtmltopdfPath = new File("wkhtmltopdf")
+			.getAbsolutePath();
+
+	public static void wkhtmltopdf(String url, String saveFile)
+			throws Exception {
+		if (url == null || "".equals(url) || saveFile == null
+				|| "".equals(saveFile))
+			return;
+		List<String> cmd = new ArrayList<String>();
+		if (OS.isWindowsXP()) {
+			cmd.add(wkhtmltopdfPath + "\\wkhtmltopdf");
+		} else if (OS.isLinux()) {
+			cmd.add("wkhtmltopdf");
+		} else {
+			cmd.add(wkhtmltopdfPath + "\\wkhtmltopdf");
+		}
+		cmd.add("");
+		cmd.add(url);
+		cmd.add(saveFile);
+		ProcessBuilder pb = new ProcessBuilder();
+		pb.command(cmd);
+		pb.redirectErrorStream(true);
+		pb.start();
+	}
+
 	public static void main(String[] args) {
 		try {
-			HTML2PDF html2pdf = new HTML2PDF("D:\\test2.pdf", null);
-			//html2pdf.parseHtml2Pdf("D:\\html1.html", SourceType.HTML);
-			html2pdf.parseHtml2Pdf("http://localhost:8080/html1.html", SourceType.URI);
+			// HTML2PDF html2pdf = new HTML2PDF("D:\\test3.pdf");
+			// html2pdf.parseHtml2Pdf(
+			// "http://localhost:8080/newLife_web_demo/test", null, "D:/",
+			// SourceType.URI);
+			wkhtmltopdf("http://localhost:8080/newLife_web_demo/test", "D:\\3.pdf");
+			// html2pdf.parseHtml2Pdf("D:/html1.html", "D:/style.css", null,
+			// SourceType.HTML);
 		} catch (Exception e) {
 			e.printStackTrace();
 		}
