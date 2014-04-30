@@ -147,7 +147,7 @@ public class HTML2PDF {
 	private static String wkhtmltopdfPath = new File("wkhtmltopdf")
 			.getAbsolutePath();
 
-	public static void wkhtmltopdf(String url, String saveFile)
+	public static void wkhtmltopdf(String url, String saveFile, String leftTitle)
 			throws Exception {
 		if (url == null || "".equals(url) || saveFile == null
 				|| "".equals(saveFile))
@@ -163,6 +163,9 @@ public class HTML2PDF {
 		cmd.add("");
 		cmd.add(url);
 		cmd.add(saveFile);
+		cmd.add("-H");
+		cmd.add("--header-left");
+		cmd.add(leftTitle);
 		ProcessBuilder pb = new ProcessBuilder();
 		pb.command(cmd);
 		pb.redirectErrorStream(true);
@@ -175,7 +178,8 @@ public class HTML2PDF {
 			// html2pdf.parseHtml2Pdf(
 			// "http://localhost:8080/newLife_web_demo/test", null, "D:/",
 			// SourceType.URI);
-			wkhtmltopdf("http://localhost:8080/newLife_web_demo/test", "D:\\3.pdf");
+			wkhtmltopdf("http://localhost:8080/newLife_web_demo/test",
+					"D:\\8.pdf","newLife");
 			// html2pdf.parseHtml2Pdf("D:/html1.html", "D:/style.css", null,
 			// SourceType.HTML);
 		} catch (Exception e) {
